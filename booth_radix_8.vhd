@@ -41,13 +41,13 @@ signal Nx_comp  : std_logic_vector(WIDTH-1 downto 0);
 signal action   : action_array;
 signal control  : control_array; 
 signal pp1 : std_logic_vector(RESULT_WIDTH-1 downto 0) := (others=>'0');
-signal pp2 : std_logic_vector((RESULT_WIDTH-4) downto 0) := (others=>'0');
+signal pp2 : std_logic_vector((RESULT_WIDTH-4) downto 0) := (others=>'0'); -- For RESULT_WIDTH=16, this is (12 downto 0)
 signal N_x : std_logic_vector(RESULT_WIDTH-1 downto 0) := (others=>'0');
-signal N_y : std_logic_vector((RESULT_WIDTH-4) downto 0) := (others=>'0');
+signal N_y : std_logic_vector((RESULT_WIDTH-4) downto 0) := (others=>'0'); -- For RESULT_WIDTH=16, this is (12 downto 0)
 signal N_z : std_logic_vector(WIDTH-1 downto 0) := (others=>'0');
-signal c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,cout : std_logic := '0';
+signal c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11 : std_logic := '0';
 -- Additional carry signals for wider bit widths
-signal c11,c12,c13,c14,c15,c16,c17,c18,c19,c20,c21,c22,c23,c24 : std_logic := '0';
+signal c12,c13,c14,c15,c16,c17,c18,c19,c20,c21,c22,c23,c24 : std_logic := '0';
 
 begin
 
@@ -130,10 +130,10 @@ begin
         -- Sign extension for N_y
         if action(1)(WIDTH-1) = '0' then
             -- Positive number, pad with zeros
-            N_y <= (RESULT_WIDTH-WIDTH-5 downto 0 => '0') & action(1);
+            N_y <= ((RESULT_WIDTH-4)-WIDTH downto 0 => '0') & action(1);
         else
             -- Negative number, pad with ones
-            N_y <= (RESULT_WIDTH-WIDTH-5 downto 0 => '1') & action(1);
+            N_y <= ((RESULT_WIDTH-4)-WIDTH downto 0 => '1') & action(1);
         end if;
         
         -- Direct assignment for N_z
@@ -154,7 +154,7 @@ wallace_tree_gen: if WIDTH = 8 generate
     FA_3 : FA port map(N_x(10),N_y(7),N_z(4),pp1(10),pp2(8));
     FA_4 : FA port map(N_x(11),N_y(8),N_z(5),pp1(11),pp2(9));
     FA_5 : FA port map(N_x(12),N_y(9),N_z(6),pp1(12),pp2(10));
-    FA_6 : FA port map(N_x(13),N_y(10),N_z(7),pp1(13)); 
+    FA_6 : FA port map(N_x(13),N_y(10),N_z(7),pp1(13),pp2(11)); 
     pp2(2 downto 0) <= N_y(2 downto 0); 
     pp2(3)  <= N_z(0); 
     prod(2 downto 0) <= pp1(2 downto 0);
@@ -168,7 +168,8 @@ wallace_tree_gen: if WIDTH = 8 generate
     FA_13 : FA port map(pp1(10),pp2(7),c7,prod(10),c8);
     FA_14 : FA port map(pp1(11),pp2(8),c8,prod(11),c9);
     FA_15 : FA port map(pp1(12),pp2(9),c9,prod(12),c10);
-    FA_16: FA port map(pp1(13),pp2(10),c10,prod(13),cout);
+    FA_16: FA port map(pp1(13),pp2(10),c10,prod(13),c11);
+    FA_17: FA port map(pp2(11),'0',c11,prod(14),prod(15));
 end generate;
 
 -- For other WIDTH values, implement a generic multiplier
@@ -178,7 +179,8 @@ generic_multiplier: if WIDTH /= 8 generate
     begin
         if rising_edge(clk) and reset = '0' then
             -- Use a simple multiplication for non-8-bit widths
-            prod <= std_logic_vector(signed(Nx) * signed(Ny));
+            -- Ensure the result is properly sized to match RESULT_WIDTH
+            prod <= std_logic_vector(resize(signed(Nx) * signed(Ny), RESULT_WIDTH));
         end if;
     end process;
 end generate;
