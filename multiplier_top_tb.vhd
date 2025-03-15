@@ -120,9 +120,10 @@ begin
             -- Select multiplier type
             sel <= std_logic_vector(to_unsigned(multiplier_type, 2));
             
-            -- Reset performance counters
-            test_count <= 0;
-            error_count <= 0;
+            -- Reset performance counters (using a separate process)
+            reset <= '1';
+            wait for TbPeriod;
+            reset <= '0';
             
             -- Record start time
             start_time := now;

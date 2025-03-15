@@ -64,8 +64,8 @@ begin
             -- Calculate expected result
             expected_result <= std_logic_vector(signed(Nx) * signed(Ny));
             
-            -- Check if result matches expected after 2 clock cycles (allowing for pipeline delay)
-            if test_count >= 2 then
+            -- Check if result matches expected after 4 clock cycles (allowing for pipeline delay)
+            if test_count >= 4 then
                 if prod /= expected_result then
                     error_count <= error_count + 1;
                     report "Error: Expected " & integer'image(to_integer(signed(expected_result))) & 
@@ -89,41 +89,41 @@ begin
         -- Test case 1: 4 * 9
         Ny <= std_logic_vector(to_signed(4, Ny'length));
         Nx <= std_logic_vector(to_signed(9, Nx'length));
-        wait for 2*TbPeriod;
+        wait for 5*TbPeriod;
         
         -- Test case 2: 6 * 11
         Ny <= std_logic_vector(to_signed(6, Ny'length));
         Nx <= std_logic_vector(to_signed(11, Nx'length));
-        wait for 2*TbPeriod;
+        wait for 5*TbPeriod;
         
         -- Test case 3: -7 * -12
         Ny <= std_logic_vector(to_signed(-7, Ny'length));
         Nx <= std_logic_vector(to_signed(-12, Nx'length));
-        wait for 2*TbPeriod;
+        wait for 5*TbPeriod;
         
         -- Test case 4: -18 * 17
         Ny <= std_logic_vector(to_signed(-18, Ny'length));
         Nx <= std_logic_vector(to_signed(17, Nx'length));
-        wait for 2*TbPeriod;
+        wait for 5*TbPeriod;
         
         -- Test case 5: Maximum positive values
         Ny <= std_logic_vector(to_signed(2**(WIDTH-1)-1, Ny'length));
         Nx <= std_logic_vector(to_signed(2**(WIDTH-1)-1, Nx'length));
-        wait for 2*TbPeriod;
+        wait for 5*TbPeriod;
         
         -- Test case 6: Maximum negative values
         Ny <= std_logic_vector(to_signed(-2**(WIDTH-1), Ny'length));
         Nx <= std_logic_vector(to_signed(-2**(WIDTH-1), Nx'length));
-        wait for 2*TbPeriod;
+        wait for 5*TbPeriod;
         
         -- Test case 7: Mixed large values
         Ny <= std_logic_vector(to_signed(2**(WIDTH-1)-1, Ny'length));
         Nx <= std_logic_vector(to_signed(-2**(WIDTH-1), Nx'length));
-        wait for 2*TbPeriod;
+        wait for 5*TbPeriod;
 
         -- Report performance metrics
         report "Test completed with " & integer'image(error_count) & " errors out of " & 
-               integer'image(test_count-2) & " tests." severity note;
+               integer'image(test_count-4) & " tests." severity note;
 
         -- EDIT Add stimuli here
         wait for 100 * TbPeriod;

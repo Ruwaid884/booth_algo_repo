@@ -175,9 +175,11 @@ end generate;
 -- For other WIDTH values, implement a generic multiplier
 generic_multiplier: if WIDTH /= 8 generate
     -- Simple direct multiplication for other bit widths
-    process(clk)
+    process(clk, reset)
     begin
-        if rising_edge(clk) and reset = '0' then
+        if reset = '1' then
+            prod <= (others => '0');
+        elsif rising_edge(clk) then
             -- Use a simple multiplication for non-8-bit widths
             -- Ensure the result is properly sized to match RESULT_WIDTH
             prod <= std_logic_vector(resize(signed(Nx) * signed(Ny), RESULT_WIDTH));
