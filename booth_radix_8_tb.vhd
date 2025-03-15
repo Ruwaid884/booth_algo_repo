@@ -68,8 +68,8 @@ begin
             if test_count >= 2 then
                 if prod /= expected_result then
                     error_count <= error_count + 1;
-                    report "Error: Expected " & to_string(to_integer(signed(expected_result))) & 
-                           " but got " & to_string(to_integer(signed(prod))) severity warning;
+                    report "Error: Expected " & integer'image(to_integer(signed(expected_result))) & 
+                           " but got " & integer'image(to_integer(signed(prod))) severity warning;
                 end if;
             end if;
             

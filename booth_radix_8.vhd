@@ -83,13 +83,30 @@ begin
             end case;
         end loop;
         Nx_comp <= std_logic_vector(unsigned(not(Nx)) + 1);
-        if Ny(WIDTH-1) = '0' then
-            control(2) <= '0' & Ny(WIDTH-1 downto WIDTH-3); 
-        else 
-            control(2) <= '1' & Ny(WIDTH-1 downto WIDTH-3);
+        if WIDTH >= 3 then
+            if Ny(WIDTH-1) = '0' then
+                control(2) <= '0' & Ny(WIDTH-1 downto WIDTH-3); 
+            else 
+                control(2) <= '1' & Ny(WIDTH-1 downto WIDTH-3);
+            end if;
+        else
+            -- Handle case where WIDTH < 3
+            control(2) <= (others => '0');
         end if;
-        control(1) <= Ny(WIDTH-3 downto WIDTH-6);
-        control(0) <= Ny(WIDTH-6 downto WIDTH-8) & '0';
+        
+        if WIDTH >= 6 then
+            control(1) <= Ny(WIDTH-3 downto WIDTH-6);
+        else
+            -- Handle case where WIDTH < 6
+            control(1) <= (others => '0');
+        end if;
+        
+        if WIDTH >= 8 then
+            control(0) <= Ny(WIDTH-6 downto WIDTH-8) & '0';
+        else
+            -- Handle case where WIDTH < 8
+            control(0) <= (others => '0');
+        end if;
     end if;
 end process;
 
@@ -101,16 +118,25 @@ begin
         N_y <= (others=>'0');
         N_z <= (others=>'0');
     elsif rising_edge(clk) then
+        -- Sign extension for N_x
         if action(0)(WIDTH-1) = '0' then
-            N_x <= (WIDTH-2 downto 0 => '0') & action(0);
+            -- Positive number, pad with zeros
+            N_x <= (RESULT_WIDTH-WIDTH-1 downto 0 => '0') & action(0);
         else
-            N_x <= (WIDTH-2 downto 0 => '1') & action(0);
+            -- Negative number, pad with ones
+            N_x <= (RESULT_WIDTH-WIDTH-1 downto 0 => '1') & action(0);
         end if;
+        
+        -- Sign extension for N_y
         if action(1)(WIDTH-1) = '0' then
-            N_y <= (WIDTH-5 downto 0 => '0') & action(1);
+            -- Positive number, pad with zeros
+            N_y <= (RESULT_WIDTH-WIDTH-5 downto 0 => '0') & action(1);
         else
-            N_y <= (WIDTH-5 downto 0 => '1') & action(1);
+            -- Negative number, pad with ones
+            N_y <= (RESULT_WIDTH-WIDTH-5 downto 0 => '1') & action(1);
         end if;
+        
+        -- Direct assignment for N_z
         N_z <= action(2);
     end if;
 end process;
@@ -145,7 +171,16 @@ wallace_tree_gen: if WIDTH = 8 generate
     FA_16: FA port map(pp1(13),pp2(10),c10,prod(13),cout);
 end generate;
 
--- For 16-bit implementation, we would need a more complex Wallace tree
--- This would be implemented in a similar way but with more adders
+-- For other WIDTH values, implement a generic multiplier
+generic_multiplier: if WIDTH /= 8 generate
+    -- Simple direct multiplication for other bit widths
+    process(clk)
+    begin
+        if rising_edge(clk) and reset = '0' then
+            -- Use a simple multiplication for non-8-bit widths
+            prod <= std_logic_vector(signed(Nx) * signed(Ny));
+        end if;
+    end process;
+end generate;
 
 end behavioral;
