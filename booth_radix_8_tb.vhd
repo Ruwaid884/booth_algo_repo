@@ -120,6 +120,11 @@ begin
         Ny <= std_logic_vector(to_signed(2**(WIDTH-1)-1, Ny'length));
         Nx <= std_logic_vector(to_signed(-2**(WIDTH-1), Nx'length));
         wait for 5*TbPeriod;
+        
+        -- Test case 8: 35 * 8 (specific test case)
+        Ny <= std_logic_vector(to_signed(35, Ny'length));
+        Nx <= std_logic_vector(to_signed(8, Nx'length));
+        wait for 5*TbPeriod;
 
         -- Report performance metrics
         report "Test completed with " & integer'image(error_count) & " errors out of " & 

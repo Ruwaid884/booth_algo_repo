@@ -83,10 +83,14 @@ begin
             end case;
         end loop;
         Nx_comp <= std_logic_vector(unsigned(not(Nx)) + 1);
+        -- Properly handle the control signals for Radix-8 Booth encoding
         if WIDTH >= 3 then
+            -- For the most significant bits (control(2))
             if Ny(WIDTH-1) = '0' then
+                -- If the MSB is 0, use the bits directly
                 control(2) <= '0' & Ny(WIDTH-1 downto WIDTH-3); 
             else 
+                -- If the MSB is 1, use the bits with the first bit inverted (for proper sign handling)
                 control(2) <= '1' & Ny(WIDTH-1 downto WIDTH-3);
             end if;
         else
@@ -95,6 +99,7 @@ begin
         end if;
         
         if WIDTH >= 6 then
+            -- For the middle bits (control(1))
             control(1) <= Ny(WIDTH-3 downto WIDTH-6);
         else
             -- Handle case where WIDTH < 6
@@ -102,6 +107,8 @@ begin
         end if;
         
         if WIDTH >= 8 then
+            -- For the least significant bits (control(0))
+            -- Add a '0' at the end for proper Radix-8 encoding
             control(0) <= Ny(WIDTH-6 downto WIDTH-8) & '0';
         else
             -- Handle case where WIDTH < 8
@@ -111,7 +118,7 @@ begin
 end process;
 
 -- arithmetic shifting
-process(clk)
+process(clk, reset)
 begin
     if reset = '1' then
         N_x <= (others=>'0');
@@ -119,6 +126,7 @@ begin
         N_z <= (others=>'0');
     elsif rising_edge(clk) then
         -- Sign extension for N_x
+        -- For action(0), extend based on its sign bit
         if action(0)(WIDTH-1) = '0' then
             -- Positive number, pad with zeros
             N_x <= (RESULT_WIDTH-WIDTH-1 downto 0 => '0') & action(0);
@@ -128,6 +136,7 @@ begin
         end if;
         
         -- Sign extension for N_y
+        -- For action(1), extend based on its sign bit
         if action(1)(WIDTH-1) = '0' then
             -- Positive number, pad with zeros
             N_y <= ((RESULT_WIDTH-4)-WIDTH downto 0 => '0') & action(1);
@@ -146,6 +155,7 @@ end process;
 -- A complete implementation would generate the full Wallace tree based on WIDTH
 wallace_tree_gen: if WIDTH = 8 generate
     -- Original 8-bit implementation
+    -- First stage: Generate partial products
     pp1(5 downto 0) <= N_x(5 downto 0); 
     HA_0 : HA port map(N_x(6),N_y(3),pp1(6),pp2(4));
     FA_0 : FA port map(N_x(7),N_y(4),N_z(1),pp1(7),pp2(5));
@@ -155,8 +165,12 @@ wallace_tree_gen: if WIDTH = 8 generate
     FA_4 : FA port map(N_x(11),N_y(8),N_z(5),pp1(11),pp2(9));
     FA_5 : FA port map(N_x(12),N_y(9),N_z(6),pp1(12),pp2(10));
     FA_6 : FA port map(N_x(13),N_y(10),N_z(7),pp1(13),pp2(11)); 
+    
+    -- Additional connections
     pp2(2 downto 0) <= N_y(2 downto 0); 
     pp2(3)  <= N_z(0); 
+    
+    -- Second stage: Generate final product
     prod(2 downto 0) <= pp1(2 downto 0);
     HA_2 : HA port map(pp1(3),pp2(0),prod(3),c1);
     FA_7 : FA port map(pp1(4),pp2(1),c1,prod(4),c2);
@@ -169,6 +183,8 @@ wallace_tree_gen: if WIDTH = 8 generate
     FA_14 : FA port map(pp1(11),pp2(8),c8,prod(11),c9);
     FA_15 : FA port map(pp1(12),pp2(9),c9,prod(12),c10);
     FA_16: FA port map(pp1(13),pp2(10),c10,prod(13),c11);
+    
+    -- Handle the most significant bits with proper sign extension
     FA_17: FA port map(pp2(11),'0',c11,prod(14),prod(15));
 end generate;
 
@@ -178,10 +194,12 @@ generic_multiplier: if WIDTH /= 8 generate
     process(clk, reset)
     begin
         if reset = '1' then
+            -- Reset the output to zero
             prod <= (others => '0');
         elsif rising_edge(clk) then
             -- Use a simple multiplication for non-8-bit widths
             -- Ensure the result is properly sized to match RESULT_WIDTH
+            -- This uses the built-in multiplication operator
             prod <= std_logic_vector(resize(signed(Nx) * signed(Ny), RESULT_WIDTH));
         end if;
     end process;
